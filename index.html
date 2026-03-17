@@ -575,7 +575,7 @@ body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--te
     <div><div class="add-label">Tool Name</div><input class="add-input" id="ar-name" placeholder="Drill, Hammer…" /></div>
     <div><div class="add-label">Spec</div><input class="add-input" id="ar-spec" placeholder="18V, 16oz…" /></div>
     <div><div class="add-label">Status</div><select class="add-select" id="ar-status"><option value="Available">Available</option><option value="In Use">In Use</option><option value="Broken">Broken</option></select></div>
-    <div><div class="add-label">Team</div><select class="add-select" id="ar-team"><option value="">Unassigned</option></select></div>
+    <div><div class="add-label">Team</div><select class="add-select" id="ar-team"><option value="">In Shop</option></select></div>
     <div class="add-actions" style="padding-top:18px"><button class="add-save" onclick="saveAddRow()">Save</button><button class="add-cancel" onclick="cancelAddRow()">Cancel</button></div>
   </div>
 </div>
@@ -594,7 +594,7 @@ body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--te
           <div class="field"><label class="field-label">Spec / Size</label><input class="field-input" id="e-spec" /></div>
           <div class="field"><label class="field-label">Status</label><select class="field-select" id="e-status"><option>Available</option><option>In Use</option><option>Broken</option></select></div>
         </div>
-        <div class="field"><label class="field-label">Team</label><select class="field-select" id="e-team"><option value="">Unassigned</option></select></div>
+        <div class="field"><label class="field-label">Team</label><select class="field-select" id="e-team"><option value="">In Shop</option></select></div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
@@ -654,7 +654,7 @@ body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--te
         </div>
         <div class="field" style="margin-top:12px">
           <label class="field-label">Assign to Team</label>
-          <select class="field-select" id="co-team"><option value="">Unassigned</option></select>
+          <select class="field-select" id="co-team"><option value="">In Shop</option></select>
         </div>
       </div>
       <div class="modal-footer">
@@ -744,7 +744,7 @@ async function loadAll() {
 
 // ── RENDER ─────────────────────────────────────────────────────────────────
 function teamName(id) {
-  if (!id) return 'Unassigned';
+  if (!id) return 'In Shop';
   return teams.find(t => t.id === id)?.name || '—';
 }
 
@@ -814,7 +814,7 @@ function renderSidebar() {
       inuse: tools.filter(l => l.team_id === t.id && l.status === 'In Use').length,
       broken: tools.filter(l => l.team_id === t.id && l.status === 'Broken').length,
     })),
-    { id: '', name: 'Unassigned',
+    { id: '', name: 'In Shop',
       count: tools.filter(l => !l.team_id).length,
       avail: tools.filter(l => !l.team_id && l.status === 'Available').length,
       inuse: tools.filter(l => !l.team_id && l.status === 'In Use').length,
@@ -849,7 +849,7 @@ function renderTable() {
   const list = filteredTools();
   const body = document.getElementById('ledgerBody');
   document.getElementById('manifestTitle').textContent =
-    activeTeam === null ? 'All Tools' : activeTeam === '' ? 'Unassigned' : teamName(activeTeam);
+    activeTeam === null ? 'All Tools' : activeTeam === '' ? 'In Shop' : teamName(activeTeam);
   document.getElementById('manifestMeta').textContent = `${list.length} tool${list.length !== 1 ? 's' : ''} shown`;
 
   if (list.length === 0) {
@@ -866,7 +866,7 @@ function renderTable() {
       const grp = groups[tid];
       if (!grp?.length) return;
       const color = tid ? teamColor(tid) : '#9ca3af';
-      html += `<div class="group-block"><div class="group-header"><div class="group-color" style="background:${color}"></div><div class="group-name">${tid ? teamName(tid) : 'Unassigned'}</div><div class="group-count">${grp.length} tool${grp.length !== 1 ? 's' : ''}</div></div><div class="table-head"><div class="th">ID</div><div class="th">Name</div><div class="th">Spec</div><div class="th">Status</div><div class="th">Team</div><div class="th">Last Out</div><div class="th"></div></div>`;
+      html += `<div class="group-block"><div class="group-header"><div class="group-color" style="background:${color}"></div><div class="group-name">${tid ? teamName(tid) : 'In Shop'}</div><div class="group-count">${grp.length} tool${grp.length !== 1 ? 's' : ''}</div></div><div class="table-head"><div class="th">ID</div><div class="th">Name</div><div class="th">Spec</div><div class="th">Status</div><div class="th">Team</div><div class="th">Last Out</div><div class="th"></div></div>`;
       grp.forEach((l, i) => { html += rowHtml(l, i); });
       html += `</div>`;
     });
@@ -897,6 +897,7 @@ function rowHtml(l, i) {
     <button class="icon-btn" onclick="openEdit('${l.id}')" title="Edit">✎</button>
     <button class="icon-btn del" onclick="deleteTool('${l.id}')" title="Delete">🗑</button>
   ` : '';
+  const historyBtn = `<button class="icon-btn" onclick="openToolHistory('${l.id}')" title="History">📋</button>`;
   return `<div class="table-row" style="animation-delay:${Math.min(i,20)*0.02}s">
     <div class="cell-id">${l.id}</div>
     <div class="cell-name">${l.name}</div>
@@ -905,7 +906,7 @@ function rowHtml(l, i) {
     <div class="cell-team" style="color:${tid ? teamColor(tid) : 'var(--text-light)'}">${tid ? teamName(tid) : '—'}</div>
     <div class="cell-date">${fmtDate(l.last_checked_out)}</div>
     <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;">
-      ${actionBtn}${editBtns}
+      ${actionBtn}${historyBtn}${editBtns}
     </div>
   </div>`;
 }
@@ -973,7 +974,7 @@ async function saveTeam() {
 
 // ── TOOL CRUD ──────────────────────────────────────────────────────────────
 function populateTeamSelects(selectedId = '') {
-  const opts = '<option value="">Unassigned</option>' + teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+  const opts = '<option value="">In Shop</option>' + teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
   ['ar-team', 'e-team', 'co-team'].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.innerHTML = opts; el.value = selectedId; }
@@ -1173,7 +1174,7 @@ function openCheckout(tool) {
   document.getElementById('coToolId').textContent = tool.id;
   document.getElementById('coToolName').textContent = tool.name + (tool.spec ? ' — ' + tool.spec : '');
   document.getElementById('coCurrentStatus').innerHTML = statusBadge(tool.status);
-  document.getElementById('coTeamName').textContent = tool.team_id ? teamName(tool.team_id) : 'Unassigned';
+  document.getElementById('coTeamName').textContent = tool.team_id ? teamName(tool.team_id) : 'In Shop';
   populateTeamSelects(tool.team_id || '');
   document.getElementById('checkoutModal').style.display = 'block';
 }
@@ -1246,7 +1247,7 @@ function renderQRCodes() {
 
 // ── KEYBOARD ──────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeEditModal(); closeTeamModal(); closeScanner(); closeCheckout(); cancelAddRow(); }
+  if (e.key === 'Escape') { closeEditModal(); closeTeamModal(); closeScanner(); closeCheckout(); cancelAddRow(); closeToolHistory(); }
   if (e.key === 'Enter') {
     if (document.getElementById('editModal').style.display !== 'none') saveEdit();
     else if (document.getElementById('teamModal').style.display !== 'none') saveTeam();
@@ -1483,6 +1484,44 @@ async function logHistory(tool, action, extraData = {}) {
   } catch(e) { console.error('History log error:', e); }
 }
 
+
+// ── TOOL HISTORY MODAL ────────────────────────────────────────────────────
+async function openToolHistory(toolId) {
+  const tool = tools.find(t => t.id === toolId);
+  document.getElementById('toolHistoryTitle').textContent = toolId;
+  document.getElementById('toolHistorySubtitle').textContent = tool ? tool.name + (tool.spec ? ' — ' + tool.spec : '') : '';
+  document.getElementById('toolHistoryBody').innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-light);font-family:Nunito,sans-serif;">Loading…</div>';
+  document.getElementById('toolHistoryModal').style.display = 'block';
+  try {
+    const rows = await dbGet('tool_history', `tool_id=eq.${encodeURIComponent(toolId)}&order=created_at.desc&limit=50`);
+    renderToolHistory(rows);
+  } catch(e) {
+    document.getElementById('toolHistoryBody').innerHTML = '<div style="color:var(--red);padding:20px;font-family:Nunito,sans-serif;">Error loading history.</div>';
+  }
+}
+
+function closeToolHistory() {
+  document.getElementById('toolHistoryModal').style.display = 'none';
+}
+
+function renderToolHistory(rows) {
+  const body = document.getElementById('toolHistoryBody');
+  if (!rows.length) {
+    body.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-light);font-family:Nunito,sans-serif;font-size:14px;">No history yet for this tool.</div>';
+    return;
+  }
+  const actionColor = { 'Checked Out': 'var(--blue)', 'Checked In': 'var(--green)', 'Marked Broken': 'var(--red)', 'Added': '#7c3aed' };
+  const actionBg = { 'Checked Out': 'var(--blue-bg)', 'Checked In': 'var(--green-bg)', 'Marked Broken': 'var(--red-bg)', 'Added': '#f5f3ff' };
+  body.innerHTML = rows.map(r => `
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="padding:3px 10px;border-radius:20px;background:${actionBg[r.action]||'#f9fafb'};color:${actionColor[r.action]||'var(--text-mid)'};font-size:11px;font-weight:800;font-family:'Nunito',sans-serif;white-space:nowrap;flex-shrink:0;">${r.action}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);font-family:'Nunito',sans-serif;">${r.foreman_name || '—'}${r.team_name ? ` <span style="color:var(--text-light);font-weight:400;">· ${r.team_name}</span>` : ''}</div>
+      </div>
+      <div style="font-size:11px;color:var(--text-light);font-family:'JetBrains Mono',monospace;white-space:nowrap;">${fmtDateTime(r.created_at)}</div>
+    </div>`).join('');
+}
+
 // ── MOBILE HELPERS ────────────────────────────────────────────────────────
 function isMobile() { return window.innerWidth <= 768; }
 
@@ -1516,7 +1555,7 @@ function openMobileTeamDrawer() {
       count: tools.filter(l => l.team_id === t.id).length,
       color: TEAM_COLORS[i % 8]
     })),
-    { id: '', name: 'Unassigned', count: tools.filter(l => !l.team_id).length, color: '#9ca3af' }
+    { id: '', name: 'In Shop', count: tools.filter(l => !l.team_id).length, color: '#9ca3af' }
   ];
   list.innerHTML = rows.map((t, i) => `
     <div class="team-drawer-item ${activeTeam === t.id ? 'active' : ''}" onclick="mobileSelectTeam(${JSON.stringify(t.id)})">
@@ -1604,6 +1643,23 @@ loadAll();
     <button onclick="exportHistory()" class="btn btn-ghost" style="font-size:12px;">⬇ Export CSV</button>
   </div>
   <div style="padding:20px 24px 80px;" id="historyBody"></div>
+</div>
+
+
+<!-- TOOL HISTORY MODAL -->
+<div id="toolHistoryModal" style="display:none;">
+  <div class="overlay" onclick="if(event.target===this)closeToolHistory()">
+    <div class="modal" style="width:560px;max-height:80vh;display:flex;flex-direction:column;">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="toolHistoryTitle">Tool History</div>
+          <div id="toolHistorySubtitle" style="font-size:12px;color:var(--text-light);margin-top:2px;font-family:'Nunito',sans-serif;"></div>
+        </div>
+        <button class="modal-close" onclick="closeToolHistory()">✕</button>
+      </div>
+      <div id="toolHistoryBody" style="padding:16px 20px;overflow-y:auto;flex:1;"></div>
+    </div>
+  </div>
 </div>
 
 </body>
