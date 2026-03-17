@@ -1028,7 +1028,11 @@ async function quickToggle(id) {
     return;
   }
   const newStatus = tool.status === 'In Use' ? 'Available' : 'In Use';
-  const data = { status: newStatus, team_id: currentForeman.team_id || tool.team_id };
+  const data = {
+    status: newStatus,
+    // Check out: assign to foreman's team. Check in: release back to pool
+    team_id: newStatus === 'In Use' ? (currentForeman.team_id || tool.team_id) : null
+  };
   if (newStatus === 'In Use') data.last_checked_out = new Date().toISOString();
   try {
     await dbUpdate('tools', id, data);
