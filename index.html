@@ -761,8 +761,8 @@ function filteredTools() {
   if (activeTeam !== null) {
     t = t.filter(x => (x.team_id || '') === activeTeam);
   }
-  if (activeStatus !== 'all') t = t.filter(x => x.status === activeStatus);
-  if (activeType !== 'all') t = t.filter(x => x.status === activeType);
+  const statusFilter = activeStatus !== 'all' ? activeStatus : (activeType !== 'all' ? activeType : null);
+  if (statusFilter) t = t.filter(x => x.status === statusFilter);
   const q = document.getElementById('searchInput')?.value.toLowerCase() || '';
   if (q) t = t.filter(x => x.id.toLowerCase().includes(q) || x.name.toLowerCase().includes(q));
   return t;
@@ -923,19 +923,33 @@ function setTeam(id) { activeTeam = id; render(); }
 
 function setStatusFilter(s) {
   activeStatus = s;
+  activeType = s; // Keep both in sync
   const classMap = { all: 'active-all', Available: 'active-avail', 'In Use': 'active-inuse', Broken: 'active-broken' };
   document.querySelectorAll('.filter-pill').forEach(b => {
     b.classList.remove('active-all','active-avail','active-inuse','active-broken');
     if (b.dataset.s === s) b.classList.add(classMap[s]);
+  });
+  // Sync sidebar filter buttons too
+  document.querySelectorAll('.sidebar-filter-btn').forEach(b => {
+    b.classList.remove('active');
+    if (b.dataset.type === s) b.classList.add('active');
   });
   renderTable();
 }
 
 function setTypeFilter(t) {
   activeType = t;
+  // Keep both filters in sync
+  activeStatus = t === 'all' ? 'all' : t;
   document.querySelectorAll('.sidebar-filter-btn').forEach(b => {
     b.classList.remove('active');
     if (b.dataset.type === t) b.classList.add('active');
+  });
+  // Sync top filter pills too
+  const classMap = { all: 'active-all', Available: 'active-avail', 'In Use': 'active-inuse', Broken: 'active-broken' };
+  document.querySelectorAll('.filter-pill').forEach(b => {
+    b.classList.remove('active-all','active-avail','active-inuse','active-broken');
+    if (b.dataset.s === t) b.classList.add(classMap[t] || 'active-all');
   });
   renderTable();
 }
@@ -1395,20 +1409,22 @@ function fmtDateTime(d) {
 }
 
 function showHistoryPanel() {
-  if (!currentForeman) {
-    alert('Please sign in first.');
-    return;
-  }
+  if (!currentForeman) { alert('Please sign in first.'); return; }
   historyVisible = true;
   adminVisible = false;
-  document.getElementById('historyPanel').style.display = 'flex';
-  document.getElementById('historyPanel').style.flexDirection = 'column';
+  // Move history panel into the layout area
+  const layout = document.querySelector('.layout');
+  const panel = document.getElementById('historyPanel');
+  if (layout && !layout.contains(panel)) layout.appendChild(panel);
+  panel.style.display = 'flex';
+  panel.style.flexDirection = 'column';
+  panel.style.flex = '1';
+  panel.style.overflowY = 'auto';
   document.querySelector('.main') && (document.querySelector('.main').style.display = 'none');
   document.getElementById('adminPage').classList.remove('visible');
   document.getElementById('adminBtn').textContent = '⚙ QR Admin';
   document.getElementById('historyNavBtn')?.classList.add('active');
   loadHistory();
-  // bottom nav
   document.getElementById('bnavHome')?.classList.remove('active');
   document.getElementById('bnavHistory')?.classList.add('active');
   document.getElementById('bnavAdmin')?.classList.remove('active');
@@ -1416,7 +1432,8 @@ function showHistoryPanel() {
 
 function hideHistoryPanel() {
   historyVisible = false;
-  document.getElementById('historyPanel').style.display = 'none';
+  const panel = document.getElementById('historyPanel');
+  panel.style.display = 'none';
   document.querySelector('.main') && (document.querySelector('.main').style.display = 'flex');
   document.getElementById('historyNavBtn')?.classList.remove('active');
 }
