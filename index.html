@@ -685,6 +685,23 @@ async function dbUpdate(table, id, data) {
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
+async function dbClearTeam(toolId) {
+  // Supabase ignores null values in PATCH, so we use a dedicated clear call
+  const r = await fetch(`${SUPA_URL}/rest/v1/tools?id=eq.${encodeURIComponent(toolId)}`, {
+    method: 'PATCH',
+    headers: { ...H, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ team_id: null })
+  });
+  // Also try via RPC if direct null doesn't work
+  if (!r.ok) {
+    // Fallback: use PostgREST null literal
+    const r2 = await fetch(`${SUPA_URL}/rest/v1/tools?id=eq.${encodeURIComponent(toolId)}`, {
+      method: 'PATCH',
+      headers: { ...H, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: '{"team_id":null}'
+    });
+  }
+}
 async function dbDelete(table, id) {
   const r = await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE', headers: H });
   if (!r.ok) throw new Error(await r.text());
@@ -1036,6 +1053,8 @@ async function quickToggle(id) {
   if (newStatus === 'In Use') data.last_checked_out = new Date().toISOString();
   try {
     await dbUpdate('tools', id, data);
+    // Explicitly clear team_id on check-in
+    if (newStatus === 'Available') await dbClearTeam(id);
     await logHistory(tool, newStatus === 'In Use' ? 'Checked Out' : 'Checked In');
     await loadAll();
   } catch(e) { setSyncStatus('err'); alert('Error: ' + e.message); }
@@ -1145,15 +1164,17 @@ function closeCheckout() { document.getElementById('checkoutModal').style.displa
 async function quickAction(newStatus) {
   if (!checkoutTool) return;
   if (!currentForeman) { alert('Please sign in first.'); return; }
-  // Check out: assign to selected/foreman's team. Check in: release back to pool
   const selectedTeam = document.getElementById('co-team').value || null;
-  const team_id = newStatus === 'In Use' ? (selectedTeam || currentForeman.team_id || null) : null;
+  const isCheckingIn = newStatus === 'Available';
+  const team_id = isCheckingIn ? null : (selectedTeam || currentForeman.team_id || null);
   const data = { status: newStatus, team_id };
   if (newStatus === 'In Use') data.last_checked_out = new Date().toISOString();
   const actionLabel = newStatus === 'In Use' ? 'Checked Out' : newStatus === 'Available' ? 'Checked In' : 'Marked Broken';
   setSyncStatus('syncing');
   try {
     await dbUpdate('tools', checkoutTool.id, data);
+    // Explicitly clear team_id on check-in since Supabase ignores null in PATCH
+    if (isCheckingIn) await dbClearTeam(checkoutTool.id);
     await logHistory(checkoutTool, actionLabel);
     await loadAll();
     closeCheckout();
