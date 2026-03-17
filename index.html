@@ -445,7 +445,7 @@ body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--te
   <div class="topbar-actions">
     <span class="sync-dot" id="syncDot"></span>
     <span class="sync-label" id="syncLabel">connecting…</span>
-    <button class="btn btn-ghost" onclick="canAccessQRAdmin() ? toggleAdmin() : alert('QR Admin is for admins only.')" id="adminBtn">⚙ QR Admin</button>
+    <button class="btn btn-ghost" onclick="if(canAccessQRAdmin()){toggleAdmin();}else{alert('QR Admin is for admins only.');}" id="adminBtn">⚙ QR Admin</button>
     <button class="btn btn-scan" onclick="openScanner()">⬜ Scan QR</button>
     <button class="btn btn-ghost admin-only" onclick="openTeamModal()">+ Team</button>
     <button class="btn btn-primary admin-only" onclick="openAddRow()">+ Tool</button>
@@ -1059,10 +1059,12 @@ function toggleAdmin() {
   adminVisible = !adminVisible;
   document.getElementById('adminPage').classList.toggle('visible', adminVisible);
   document.getElementById('adminBtn').textContent = adminVisible ? '← Tracker' : '⚙ QR Admin';
-  // Hide/show main layout content
   document.querySelector('.main').style.display = adminVisible ? 'none' : 'flex';
   document.querySelector('.sidebar').style.display = adminVisible ? 'none' : 'flex';
-  if (adminVisible) renderQRCodes();
+  if (adminVisible) {
+    switchAdminTab('qr');
+    renderQRCodes();
+  }
 }
 
 function renderQRCodes() {
@@ -1153,15 +1155,7 @@ async function editForeman(id) {
   } catch(e) { setSyncStatus('err'); alert('Error: ' + e.message); }
 }
 
-// ── OVERRIDE toggleAdmin TO SHOW ADMIN TABS ───────────────────────────────
-const _origToggleAdmin = toggleAdmin;
-function toggleAdmin() {
-  _origToggleAdmin();
-  if (adminVisible) {
-    // Reset to QR tab
-    switchAdminTab('qr');
-  }
-}
+
 
 // ── AUTH & FOREMEN ────────────────────────────────────────────────────────
 let foremen = [];
