@@ -551,14 +551,18 @@ body {
 }
 
 @media print {
-  .topbar, .sidebar, .admin-header { display: none !important; }
-  .layout { display: block !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .topbar, .sidebar, .admin-header, .bottom-nav, #loginScreen { display: none !important; }
+  .layout { display: block !important; height: auto !important; }
   .main { display: none !important; }
-  .admin-page { display: block !important; }
-  .admin-body { padding: 4mm; }
+  .admin-page { display: block !important; height: auto !important; overflow: visible !important; }
+  .admin-body { padding: 4mm; height: auto !important; overflow: visible !important; }
   .qr-grid { grid-template-columns: repeat(4, 1fr); gap: 4mm; }
-  .qr-card { border: 0.5mm solid #ccc; page-break-inside: avoid; border-radius: 0; background: #fff; }
+  .qr-card { border: 0.5mm solid #999 !important; page-break-inside: avoid; border-radius: 0 !important; background: #fff !important; box-shadow: none !important; }
   .qr-card-id, .qr-card-name, .qr-card-spec { color: #000 !important; }
+  .qr-canvas-wrap { background: #fff !important; }
+  .admin-body > div { display: none; }
+  #adminQRPanel { display: block !important; }
 }
 
 ::-webkit-scrollbar { width: 5px; }
@@ -633,7 +637,7 @@ body {
       <div class="admin-subtitle">Print-ready codes for vinyl sticker shop</div>
     </div>
     <div style="display:flex;gap:10px">
-      <button class="btn btn-ghost" onclick="window.print()">🖨 Print All</button>
+      <button class="btn btn-ghost" onclick="printQRCodes()">🖨 Print All</button>
       <button class="btn btn-primary" onclick="toggleAdmin()">← Back to Tracker</button>
     </div>
   </div>
@@ -1351,6 +1355,15 @@ setInterval(loadAll, 15000);
 
 
 
+
+
+async async function printQRCodes() {
+  // Make sure QR codes are rendered first
+  renderQRCodes();
+  // Wait for QR library to finish drawing all canvases
+  await new Promise(r => setTimeout(r, 1200));
+  window.print();
+}
 
 // ── ADMIN TABS ────────────────────────────────────────────────────────────
 function switchAdminTab(tab) {
